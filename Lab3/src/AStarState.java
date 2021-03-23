@@ -1,84 +1,159 @@
-/**
- * This class stores the basic state necessary for the A* algorithm to compute a
- * path across a map.  This state includes a collection of "open waypoints" and
- * another collection of "closed waypoints."  In addition, this class provides
- * the basic operations that the A* pathfinding algorithm needs to perform its
- * processing.
- **/
+import java.util.*;
+
+/*
+    Этот класс хранит базовое состояние, необходимое для алгоритма A * для вычисления
+    путей по карте. Это состояние включает в себя набор открытых путевых точек.
+    и еще один набор закрытых путевых точек. Кроме того, этот класс
+    предоставляет основные операции, необходимые алгоритму поиска пути A * для его обработки.
+*/
+
 public class AStarState
 {
-    /** This is a reference to the map that the A* algorithm is navigating. **/
+    // ссылка на карту
     private Map2D map;
 
+    /*
+    Инициализация карты со всеми открытыми точками
+    */
+    private Map<Location, Waypoint> openPoint = new HashMap<> ();
 
-    /**
-     * Initialize a new state object for the A* pathfinding algorithm to use.
-     **/
+    /*
+    Инициализация карты со всеми закрытыми точками
+    */
+    private Map<Location, Waypoint> closedPoint = new HashMap<> ();
+
+    /*
+     Инициализация нового объекта для использования алгоритма A
+    */
     public AStarState(Map2D map)
     {
         if (map == null)
-            throw new NullPointerException("map cannot be null");
-
+            // в случаее map = null бросаем исключение (что бы программа аварийно не закончила работу)
+            throw new NullPointerException("Map не должен быть пустым");
         this.map = map;
     }
 
-    /** Returns the map that the A* pathfinder is navigating. **/
+    /*
+    Возращаем карту
+    */
     public Map2D getMap()
     {
         return map;
     }
 
-    /**
-     * This method scans through all open waypoints, and returns the waypoint
-     * with the minimum total cost.  If there are no open waypoints, this method
-     * returns <code>null</code>.
-     **/
+    /*
+     Этот метод просматривает все открытые путевые точки и возвращает путевую точку.
+     с минимальной общей стоимостью.
+     */
     public Waypoint getMinOpenWaypoint()
     {
-        // TODO:  Implement.
-        return null;
+        // Если нет точек для прохождения, вовращаем null.
+        if (numOpenWaypoints() == 0)
+            return null;
+
+        // Перебираем и сохраняем все открытые точки
+        Set open_waypoint_keys = openPoint.keySet();
+        Iterator i = open_waypoint_keys.iterator();
+        Waypoint best = null;
+        float best_cost = Float.MAX_VALUE;
+
+        // Цикл по перебору точек
+        while (i.hasNext())
+        {
+            // Сохраняем локацию
+            Location location = (Location)i.next();
+            // Сохраняем точку
+            Waypoint waypoint = openPoint.get(location);
+            // Сохраняем общую стоимость полученной точки
+            float waypoint_total_cost = waypoint.getTotalCost();
+
+            /*
+            Если общая стоимость текущей путевой точки меньше
+            чем сохраненная стоимость, то заменим
+            сохраненную путевую точку на текущую путевую точку
+            и сохраненную общую стоимость на текущую общую стоимость.
+            */
+            if (waypoint_total_cost < best_cost)
+            {
+                best = openPoint.get(location);
+                best_cost = waypoint_total_cost;
+            }
+
+        }
+        // Вернём точку
+        return best;
     }
 
-    /**
-     * This method adds a waypoint to (or potentially updates a waypoint already
-     * in) the "open waypoints" collection.  If there is not already an open
-     * waypoint at the new waypoint's location then the new waypoint is simply
-     * added to the collection.  However, if there is already a waypoint at the
-     * new waypoint's location, the new waypoint replaces the old one <em>only
-     * if</em> the new waypoint's "previous cost" value is less than the current
-     * waypoint's "previous cost" value.
-     **/
-    public boolean addOpenWaypoint(Waypoint newWP)
+    /*
+     Этот метод добавляет путевую точку в коллекцию "открытых путевых точек"
+     Если уже есть путевая точка в местоположении новой путевой точки, новая путевая точка заменяет
+     старую только если значение "предыдущей стоимости" новой путевой точки
+     меньше, чем значение "предыдущей стоимости" текущей путевой точки.
+     */
+    public boolean addOpenWaypoint(Waypoint waypoint)
     {
-        // TODO:  Implement.
-        return false;
+        // Поиск местонахождения новой точки
+        Location location = waypoint.getLocation();
+
+        /*
+        Условие ниже проверяет, есть ли уже открытая путевая точка в новом
+        местоположение путевой точки.
+        */
+        if (openPoint.containsKey(location))
+        {
+            /*
+            Если в новой путевой точке уже есть открытая путевая точка
+            то проверяем, является ли новая путевая точка "предыдущей":
+            значение "стоимости" меньше, чем "предыдущее" текущей путевой точки
+            */
+            Waypoint current_waypoint = openPoint.get(location);
+            if (waypoint.getPreviousCost() < current_waypoint.getPreviousCost())
+            {
+                /*
+                Если значение "предыдущей стоимости" новой путевой точки меньше, чем
+                значение "предыдущей стоимости" текущей путевой точки, то новая путевая точка
+                заменяет старую путевую точку и возвращает true.
+                */
+                openPoint.put(location, waypoint);
+                return true;
+            }
+            /*
+            Если значение "предыдущей стоимости" новой путевой точки не меньше,
+            чем значение "предыдущей стоимости" текущей путевой точки, возвращаем false.
+             */
+            return false;
+        }
+
+        // Если в новой путевой точке еще нет открытой путевой точки
+        // то добавляем новую путевую точку в коллекцию открытых путевых точек
+        openPoint.put(location, waypoint);
+        return true;
     }
 
 
-    /** Returns the current number of open waypoints. **/
+    /*
+    Возвращает количество открытых точек
+    */
     public int numOpenWaypoints()
     {
-        // TODO:  Implement.
-        return 0;
+        return openPoint.size();
     }
 
-
-    /**
-     * This method moves the waypoint at the specified location from the
-     * open list to the closed list.
+    /*
+     Этот метод перемещает путевую точку в указанное место из
+     открытого списка к закрытому.
      **/
-    public void closeWaypoint(Location loc)
+    public void closeWaypoint(Location location)
     {
-        // TODO:  Implement.
+        Waypoint waypoint = openPoint.remove(location);
+        closedPoint.put(location, waypoint);
     }
 
-    /**
-     * Returns true if the collection of closed waypoints contains a waypoint
-     * for the specified location.
-     **/
-    public boolean isLocationClosed(Location loc)
+    /*
+    Возврат истины, если в закрытых точках находится путевая точка
+     */
+    public boolean isLocationClosed(Location location)
     {
-        // TODO:  Implement.
-        return false;
+        return closedPoint.containsKey(location);
     }
 }
